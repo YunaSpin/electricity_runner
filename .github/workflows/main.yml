@@ -1,1 +1,42 @@
+name: 电费监控
+
+on:
+  schedule:
+    # 每10分钟执行一次 (UTC 时间)
+    # GitHub Actions cron 使用 UTC，最小粒度 5 分钟
+    - cron: '*/10 * * * *'
+  # 支持手动触发
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    # 公开仓库无需设置超时；私有仓库默认6小时
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: 查询电费并告警
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMS_RECEIVER: ${{ secrets.SMS_RECEIVER }}
+        run: python electricity_runner.py
+
+      - name: 提交日志和状态更新
+        if: always()  # 即使查询失败也尝试提交日志
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add log.txt alert_state.json
+          git diff --staged --quiet || git commit -m "📊 自动更新电费日志 [skip ci]"
+          git push
 
