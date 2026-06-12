@@ -1,0 +1,6 @@
+{
+  "meter_id": "19500815873",
+  "check_interval_minutes": 10,
+  "balance_threshold": 11.0,
+  "kwh_threshold": 15.0
+}
