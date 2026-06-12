@@ -103,11 +103,27 @@ def should_send_alert(alert_type):
 
 def query_meter(meter_id):
     """查询电表数据，返回 (data_dict, error_string)"""
+    url = URL_TEMPLATE.format(meter_id)
+    # 模拟真实浏览器请求头，尽可能绕过地域/WAF 限制
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "Cache-Control": "max-age=0",
+        "Connection": "keep-alive",
+        "Referer": "http://www.wap.cnyiot.com/",
+    }
     try:
-        url = URL_TEMPLATE.format(meter_id)
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=15) as resp:
             html = resp.read().decode("utf-8")
+    except urllib.request.HTTPError as e:
+        # 捕获 HTTP 错误详情（状态码 + 响应体）用于调试
+        try:
+            body = e.read().decode("utf-8", errors="ignore")[:500]
+        except Exception:
+            body = "(无法读取响应体)"
+        return None, f"HTTP {e.code} {e.reason} | 响应: {body}"
     except Exception as e:
         return None, str(e)
 
